@@ -323,7 +323,7 @@ impl<T: AsyncRead + AsyncWrite + Send + Sync + 'static> Channel<T> {
     }
 
     /// Cancel subscription
-    pub fn cancel_queue(
+    pub fn cancel_consumer(
         &mut self,
         consumer_tag: String,
     ) -> impl Future<Item = (), Error = io::Error> + Send + 'static {
