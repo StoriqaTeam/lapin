@@ -322,6 +322,24 @@ impl<T: AsyncRead + AsyncWrite + Send + Sync + 'static> Channel<T> {
         })
     }
 
+    /// Cancel subscription
+    pub fn cancel_queue(
+        &mut self,
+        consumer_tag: String,
+    ) -> impl Future<Item = (), Error = io::Error> + Send + 'static {
+        let id = self.id;
+        self.run_on_locked_transport(
+            "cancel",
+            "Could not cancel subscription",
+            move |transport| {
+                transport
+                    .conn
+                    .basic_cancel(id, consumer_tag, true)
+                    .map(Some)
+            },
+        ).map(|_| ())
+    }
+
     /// request access
     ///
     /// returns a future that resolves once the access is granted
