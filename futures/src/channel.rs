@@ -334,7 +334,7 @@ impl<T: AsyncRead + AsyncWrite + Send + Sync + 'static> Channel<T> {
             move |transport| {
                 transport
                     .conn
-                    .basic_cancel(id, consumer_tag, true)
+                    .basic_cancel(id, consumer_tag, false)
                     .map(Some)
             },
         ).map(|_| ())
