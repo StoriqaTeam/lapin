@@ -34,7 +34,7 @@ pub struct Consumer<T> {
   inner: Arc<Mutex<ConsumerInner>>,
   channel_id: u16,
   queue: String,
-  pubconsumer_tag: String,
+  pub consumer_tag: String,
 }
 
 #[derive(Debug)]
