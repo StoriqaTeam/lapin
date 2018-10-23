@@ -1,14 +1,14 @@
-use futures::{Async,Poll,Stream,task};
+use futures::{task, Async, Poll, Stream};
 use lapin_async::consumer::ConsumerSubscriber;
-use tokio_io::{AsyncRead,AsyncWrite};
 use std::collections::VecDeque;
 use std::io;
-use std::sync::{Arc,Mutex};
+use std::sync::{Arc, Mutex};
+use tokio_io::{AsyncRead, AsyncWrite};
 
 use message::Delivery;
 use transport::*;
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct ConsumerSub {
   inner: Arc<Mutex<ConsumerInner>>,
 }
@@ -30,30 +30,35 @@ impl ConsumerSubscriber for ConsumerSub {
 
 #[derive(Clone)]
 pub struct Consumer<T> {
-  transport:    Arc<Mutex<AMQPTransport<T>>>,
-  inner:        Arc<Mutex<ConsumerInner>>,
-  channel_id:   u16,
-  queue:        String,
-  consumer_tag: String,
+  transport: Arc<Mutex<AMQPTransport<T>>>,
+  inner: Arc<Mutex<ConsumerInner>>,
+  channel_id: u16,
+  queue: String,
+  pubconsumer_tag: String,
 }
 
 #[derive(Debug)]
 struct ConsumerInner {
   deliveries: VecDeque<Delivery>,
-  task:       Option<task::Task>,
+  task: Option<task::Task>,
 }
 
 impl Default for ConsumerInner {
   fn default() -> Self {
     Self {
       deliveries: VecDeque::new(),
-      task:       None,
+      task: None,
     }
   }
 }
 
-impl<T: AsyncRead+AsyncWrite+Sync+Send+'static> Consumer<T> {
-  pub fn new(transport: Arc<Mutex<AMQPTransport<T>>>, channel_id: u16, queue: String, consumer_tag: String) -> Consumer<T> {
+impl<T: AsyncRead + AsyncWrite + Sync + Send + 'static> Consumer<T> {
+  pub fn new(
+    transport: Arc<Mutex<AMQPTransport<T>>>,
+    channel_id: u16,
+    queue: String,
+    consumer_tag: String,
+  ) -> Consumer<T> {
     Consumer {
       transport,
       inner: Arc::new(Mutex::new(ConsumerInner::default())),
@@ -74,34 +79,50 @@ impl<T: AsyncRead+AsyncWrite+Sync+Send+'static> Consumer<T> {
   }
 }
 
-impl<T: AsyncRead+AsyncWrite+Sync+Send+'static> Stream for Consumer<T> {
+impl<T: AsyncRead + AsyncWrite + Sync + Send + 'static> Stream for Consumer<T> {
   type Item = Delivery;
   type Error = io::Error;
 
   fn poll(&mut self) -> Poll<Option<Delivery>, io::Error> {
-    trace!("consumer poll; consumer_tag={:?} polling transport", self.consumer_tag);
+    trace!(
+      "consumer poll; consumer_tag={:?} polling transport",
+      self.consumer_tag
+    );
     let mut transport = lock_transport!(self.transport);
     transport.poll()?;
     let mut inner = match self.inner.lock() {
       Ok(inner) => inner,
-      Err(_)    => if self.inner.is_poisoned() {
-        return Err(io::Error::new(io::ErrorKind::Other, "Consumer mutex is poisoned"))
+      Err(_) => if self.inner.is_poisoned() {
+        return Err(io::Error::new(
+          io::ErrorKind::Other,
+          "Consumer mutex is poisoned",
+        ));
       } else {
         task::current().notify();
-        return Ok(Async::NotReady)
+        return Ok(Async::NotReady);
       },
     };
-    trace!("consumer poll; consumer_tag={:?} acquired inner lock", self.consumer_tag);
+    trace!(
+      "consumer poll; consumer_tag={:?} acquired inner lock",
+      self.consumer_tag
+    );
     if inner.task.is_none() {
       let task = task::current();
       task.notify();
       inner.task = Some(task);
     }
     if let Some(delivery) = inner.deliveries.pop_front() {
-      trace!("delivery; consumer_tag={:?} delivery_tag={:?}", self.consumer_tag, delivery.delivery_tag);
+      trace!(
+        "delivery; consumer_tag={:?} delivery_tag={:?}",
+        self.consumer_tag,
+        delivery.delivery_tag
+      );
       Ok(Async::Ready(Some(delivery)))
     } else {
-      trace!("delivery; consumer_tag={:?} status=NotReady", self.consumer_tag);
+      trace!(
+        "delivery; consumer_tag={:?} status=NotReady",
+        self.consumer_tag
+      );
       Ok(Async::NotReady)
     }
   }
