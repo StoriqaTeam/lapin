@@ -38,7 +38,7 @@ pub struct Consumer<T> {
 }
 
 #[derive(Debug)]
-struct ConsumerInner {
+pub struct ConsumerInner {
   pub deliveries: VecDeque<Delivery>,
   task: Option<task::Task>,
 }
