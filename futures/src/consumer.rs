@@ -10,7 +10,7 @@ use transport::*;
 
 #[derive(Clone, Debug)]
 pub struct ConsumerSub {
-  inner: Arc<Mutex<ConsumerInner>>,
+  pub inner: Arc<Mutex<ConsumerInner>>,
 }
 
 impl ConsumerSubscriber for ConsumerSub {
