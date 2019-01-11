@@ -117,6 +117,8 @@
 
 extern crate amq_protocol;
 #[macro_use]
+extern crate failure;
+#[macro_use]
 extern crate log;
 extern crate nom;
 extern crate cookie_factory;
@@ -132,3 +134,4 @@ pub mod message;
 pub mod api;
 pub mod error;
 pub mod types;
+pub mod uri;

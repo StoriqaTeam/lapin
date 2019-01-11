@@ -1,3 +1,33 @@
+### Unreleased
+
+#### Housekeeping
+
+* Update `amq-protocol`
+
+#### Breaking Changes
+
+* **async:**
+  * Introduce a new `Error` type, replacing occurences of `io::Error` in public APIs ([#145](https://github.com/sozu-proxy/lapin/pull/147))
+* **futures:**
+  * Introduce a new `Error` type, replacing occurences of `io::Error` in public APIs ([#145](https://github.com/sozu-proxy/lapin/pull/145))
+
+### 0.14.1 (2018-11-16)
+
+#### Housekeeping
+
+* Update `env_logger`
+* Drop unused `build.rs` from async
+
+#### Bug Fixes
+
+* Fix heartbeat interval
+### 0.14.0 (2018-10-17)
+
+#### Housekeeping
+
+* Update amq-protocol dependency
+* Reexport `amq_protocol::uri`
+
 ### 0.13.0 (2018-07-09)
 
 #### Features

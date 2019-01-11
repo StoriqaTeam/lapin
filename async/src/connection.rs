@@ -15,7 +15,7 @@ use channel::{Channel, BasicProperties};
 use message::*;
 use api::{Answer,ChannelState,RequestId};
 use types::{AMQPValue,FieldTable};
-use error::{self, InvalidState};
+use error;
 
 #[derive(Clone,Copy,Debug,PartialEq,Eq)]
 pub enum ConnectionState {
@@ -186,14 +186,14 @@ impl Connection {
   pub fn check_state(&self, channel_id: u16, state: ChannelState) -> result::Result<(), error::Error> {
     self.channels
           .get(&channel_id)
-          .map_or(Err(error::Error::InvalidChannel), |c| {
+          .map_or(Err(error::ErrorKind::InvalidChannel(channel_id).into()), |c| {
               if c.state == state {
                   Ok(())
               } else {
-                Err(error::Error::InvalidState(InvalidState {
+                Err(error::ErrorKind::InvalidState {
                     expected: state,
                     actual:   c.state.clone(),
-                }))
+                }.into())
               }
           })
   }
@@ -642,7 +642,7 @@ impl Connection {
       body_size:      slice.len() as u64,
       properties:     properties,
     };
-    self.frame_queue.push_back(AMQPFrame::Header(channel_id, class_id, header));
+    self.frame_queue.push_back(AMQPFrame::Header(channel_id, class_id, Box::new(header)));
 
     //a content body frame 8 bytes of overhead
     for chunk in slice.chunks(self.configuration.frame_max as usize - 8) {
@@ -725,12 +725,12 @@ mod tests {
             let header_frame = AMQPFrame::Header(
                 channel_id,
                 60,
-                AMQPContentHeader {
+                Box::new(AMQPContentHeader {
                     class_id: 60,
                     weight: 0,
                     body_size: 2,
                     properties: BasicProperties::default(),
-                }
+                })
             );
             conn.handle_frame(header_frame).unwrap();
             let channel_state = conn.channels.get_mut(&channel_id)
@@ -801,12 +801,12 @@ mod tests {
             let header_frame = AMQPFrame::Header(
                 channel_id,
                 60,
-                AMQPContentHeader {
+                Box::new(AMQPContentHeader {
                     class_id: 60,
                     weight: 0,
                     body_size: 0,
                     properties: BasicProperties::default(),
-                }
+                })
             );
             conn.handle_frame(header_frame).unwrap();
             let channel_state = conn.channels.get_mut(&channel_id)
