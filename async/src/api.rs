@@ -1491,7 +1491,6 @@ impl Connection {
         match self.get_next_answer(_channel_id) {
           Some(Answer::AwaitingBasicRecoverOk(request_id)) => {
             self.finished_reqs.insert(request_id, true);
-            error!("unimplemented method Basic.RecoverOk, ignoring packet");
             Ok(())
           },
           _ => {
